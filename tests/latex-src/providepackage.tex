@@ -1,0 +1,6 @@
+% Define a macro that will only load packages if they are
+% not already loaded
+\makeatletter
+\newcommand{\providepackage}[2][]{
+  \@ifpackageloaded{#2}{}{\usepackage[#1]{#2}}}
+\makeatother

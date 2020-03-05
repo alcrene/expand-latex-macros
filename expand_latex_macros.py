@@ -1,18 +1,12 @@
-#!/usr/bin/python -O
+r"""
+                     EXPAND_LATEX_MACROS
 
-"""
-Copyright 2005 Peter Gacs
-Licensed under the Academic Free Licence version 2.1
-
+                        based on the
                           DE-MACRO
+                          package
 
-Version 1.3 - this version is much more conservative about deleting
-              comments and inserting or deleting blank space: tries to
-              leave in all comments, adds space only when necessary, and
-              tries not to delete space in the main text.
-              The motivating comments came from Daniel Webb.
-Version 1.2 - a syntactical bug corrected, thanks Brian de Alwis!
-
+This is first and foremost a Python3 port of the de-macro package.
+The original docstring for the de-macro package follows below.
 
 PURPOSE
 
@@ -122,18 +116,18 @@ def newer(file1, file2):
         return False
 
     try:
-        stat_return = os.lstat(file1) 
+        stat_return = os.lstat(file1)
     except OSError, detail:
 	die("lstat " + file1 + " failed:", detail)
     time1 = stat_return.st_mtime
 
     try:
-        stat_return = os.lstat(file2) 
+        stat_return = os.lstat(file2)
     except OSError, detail:
 	die("lstat " + file2 + " failed:", detail)
     time2 = stat_return.st_mtime
 
-    return time1 > time2    
+    return time1 > time2
 
 def cut_extension(filename, ext):
     """
@@ -175,7 +169,7 @@ class Stream:
             self.pos = 0
             self.item = self.data[0]
             return self.item
-        
+
 
 # Basic classes
 
@@ -199,7 +193,7 @@ class Token:
     esc_symb_ty = 1
     esc_str_ty = 2
     comment_ty = 3
-    
+
     type = simple_ty
     val = " "
 
@@ -211,7 +205,7 @@ class Token:
         out = ""
         if simple_ty == self.type or comment_ty == self.type:
             out = self.val
-        else: 
+        else:
             out = "\\" + self.val
         return out
 
@@ -275,7 +269,7 @@ class Group:
     def show(self):
         if token_ty == self.type:
             return self.val.show()
-        else: 
+        else:
             return "{%s}" % detokenize(self.val)
 
 # Constants
@@ -306,7 +300,7 @@ def tokenize(in_str):
             name = cs.scan_escape_token(isatletter)
             if isletter(name[0], isatletter):
                 token = Token(esc_str_ty, name)
-            else: 
+            else:
                 token = Token(esc_symb_ty, name)
             text.append(token)
             if "makeatletter" == name:
@@ -316,7 +310,7 @@ def tokenize(in_str):
     return text
 
 
-        
+
 class Command_def:
     name = "1"
     numargs = 0
@@ -415,7 +409,7 @@ class Char_stream(Stream):
             self.next()
         while self.uplegal() and blank_re.match(self.item):
             comment += self.item
-            self.next() 
+            self.next()
         return comment
 
     def scan_input_filename(self):
@@ -513,7 +507,7 @@ class Tex_stream(Stream):
                 else:
                     if isletter(name[0], isatletter):
                         token = Token(esc_str_ty, name)
-                    else: 
+                    else:
                         token = Token(esc_symb_ty, name)
                     text.append(token)
                     if "makeatletter" == name:
@@ -744,7 +738,7 @@ class Tex_stream(Stream):
         end_val = strip_comments(end_group.val)
 
         return Env_def(env_name, numargs, begin_val, end_val)
-    
+
     def scan_defs(self):
         if not self.legal():
             raise "No definitions to scan."
@@ -915,7 +909,7 @@ class Tex_stream(Stream):
                 print out
 
     # Applying definitions, recursively
-    # (maybe not quite in Knuth order, so avoid tricks!)    
+    # (maybe not quite in Knuth order, so avoid tricks!)
 
     def subst_args(self, body, args):
         out = []
@@ -963,7 +957,7 @@ class Tex_stream(Stream):
         body, args = env_instance.body, env_instance.args
         out = self.subst_args(begin, args) + body + self.subst_args(end, args)
         return self.apply_all_recur(out)
-        
+
 
     def apply_all_recur(self, data, report=False):
         ts = Tex_stream(data)
@@ -1072,7 +1066,7 @@ root = restargs[0]
 root = cut_extension(root, ".tex")
 if options.has_key("--defs"):
     defs_root = options["--defs"]
-else: 
+else:
     defs_root = "%s" % (root)
 defs_db = defs_root
 defs_db_file = defs_root+".db"

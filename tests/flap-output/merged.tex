@@ -1,0 +1,381 @@
+
+\documentclass{article}
+
+% Define a macro that will only load packages if they are
+% not already loaded
+\makeatletter
+\newcommand{\providepackage}[2][]{
+  \@ifpackageloaded{#2}{}{\usepackage[#1]{#2}}}
+\makeatother
+
+% Packages
+\providepackage{amsmath}
+\providepackage{amssymb}
+\providepackage[T1]{fontenc}
+\providepackage[utf8]{inputenc}
+\providepackage{etoolbox}
+\providepackage{xcolor}
+\providepackage{algorithm}
+\providepackage{booktabs}
+\providepackage{graphicx}
+
+
+% Textual (citet) and parenthetical (citep) citations.
+% These are the commands provided by natbib, which is used
+% in some journal templates (e.g. APS)
+% Providing replacement placeholder macros allows us to
+% use them with any template, in the worst case falling back
+% to the default `\cite`.
+\providepackage{cite}
+\providepackage{twoopt}
+\providecommandtwoopt{\citep}[3][][]{\cite{#3}}
+\providecommandtwoopt{\citet}[3][][]{\cite{#3}}
+  % In addition to fixing some citation typography, `cite` will automatically
+  % move commas following superscript citations. Thanks to this, we don't need to
+  % hard-code the citation type into the text: we write `bla \citep{ref},`
+  % and let the package sort out whether to remove the preceding space or move
+  % the comma according the formatting options.
+
+% Fallback commands for tables when booktabs is not loaded
+\providecommand{\thickhline}{\hline}   % PLOS command
+\providecommand{\toprule}{\thickhline}
+\providecommand{\bottomrule}{\thickhline}
+\providecommand{\midrule}{\hline}
+\providecommand{\cmidrule}[1]{\cline{#1}}
+
+% Ref packages need to be loaded last, and in this order
+\providepackage{nameref}
+\providepackage{hyperref}
+\hypersetup{draft=false,colorlinks,breaklinks=true,
+            linkcolor=black,citecolor=black,filecolor=black}
+\providepackage{cleveref}
+% Define 'subfigure' reference type, introduced by subcaption
+\makeatletter
+\if@cref@capitalise
+  \if@cref@abbrev
+    \crefname{subfigure}{Fig.}{Figs.}
+  \else
+    \crefname{subfigure}{Figure}{Figures}
+  \fi
+\else
+  \if@cref@abbrev
+    \crefname{subfigure}{fig.}{figs.}
+  \else
+    \crefname{subfigure}{figure}{figures}
+  \fi
+\fi
+\makeatother
+\newcommand{\textrf}[1]{\textsc{#1}}
+\Crefname{subfigure}{Figure}{Figures}
+\newcommand{\creffloat}[1]{\namecref{#1}~\ref{#1}}
+\newcommand{\creffloats}[2]{\namecrefs{#1}~\ref{#1} and~\ref{#2}}
+\newcommand{\creffloatrange}[2]{\namecrefs{#1}~\ref{#1}--\ref{#2}}
+\newcommand{\Creffloat}[1]{\nameCref{#1}~\ref{#1}}
+\newcommand{\Creffloats}[2]{\nameCrefs{#1}~\ref{#1} and~\ref{#2}}
+\newcommand{\Creffloatrange}[2]{\nameCrefs{#1}~\ref{#1}--\ref{#2}}
+  % Use these instead of `\cref` when referencing floats
+  % (i.e. `figure` or `table` environments)
+  % They avoid an issue caused by using the nameref, hyperref
+  % and cleveref packages with the 'draft' option.
+  % The disadvantage is that you lose cleveref's ability
+  % to compress references.
+
+% Add \titlerunning and \authorrunning macros, for papers that use them
+\providecommand{\thetitle}{}
+\providecommand{\runtitle}{}
+\providecommand{\runauthor}{}
+\renewcommand{\title}[1]{\renewcommand{\thetitle}{#1}}
+\providecommand{\titlerunning}[1]{\renewcommand{\runtitle}{#1}}
+\providecommand{\authorrunning}[1]{\renewcommand{\runauthor}{#1}}
+
+
+% Default float placement
+\makeatletter
+\renewcommand{\fps@figure}{!htp}
+\renewcommand{\fps@table}{!htbp}
+\makeatother
+\renewcommand{\textfraction}{.15}  % default .2 or .3
+\renewcommand{\topfraction}{.8}    % default .7
+\renewcommand{\floatpagefraction}{.8}  % defautl .5 or .6
+\renewcommand{\bottomfraction}{.4} % default .3
+
+\newcommand{\captitle}[1]{\textbf{#1}}
+% Subfigure captions
+\providepackage{subcaption}
+\newcommand{\subrefformat}[1]{\textbf{#1}}
+\newcommand{\subreflabel}[1]{\subrefformat{\subref{#1}.}}
+\newcommand{\subreflabels}[2]{\subrefformat{\subref{#1},\subref{#2}.}}
+%\captionsetup{subrefformat=parens}
+\DeclareCaptionSubType[Alph]{figure}  % Use capital letters for subref labels
+\DeclareCaptionSubType[Alph]{table}
+
+% Use inline floats for lists of headings and floats (e.g. appendices), where
+% there may be no referencing text and heading-floats order is important.
+% https://tex.stackexchange.com/a/169092; https://tex.stackexchange.com/a/15090
+% https://tex.stackexchange.com/a/154475
+\let\oldcaption\caption
+\newenvironment{inlinetable}[1][]  % Optional args gobble up eg. [H!], [tbp]
+               {\renewcommand{\caption}[1]{
+                  \let\caption\oldcaption
+                  \captionof{table}{##1} \vspace{0.5ex}}
+                \vspace{1ex} \noindent\begin{minipage}{\textwidth}}
+               {\end{minipage} \vfill\null}
+\newenvironment{inlinefigure}[1][]
+               {\renewcommand{\caption}[1]{
+                  \let\caption\oldcaption
+                  \vspace{0.5ex}\captionof{figure}{##1}}
+                \vspace{1ex} \noindent\begin{minipage}{\textwidth}}
+               {\end{minipage} \vfill\null}
+
+% Useful for using cleveref and citations
+\makeatletter
+\newcommand{\eqname}{\cref@equation@name}
+\newcommand{\Eqname}{\Cref@equation@name}
+\newcommand{\eqnames}{\cref@equation@name@plural}
+\newcommand{\Eqnames}{\Cref@equation@name@plural}
+\newcommand{\figname}{\cref@figure@name}
+\newcommand{\Figname}{\Cref@figure@name}
+\newcommand{\fignames}{\cref@figure@name@plural}
+\newcommand{\Fignames}{\Cref@figure@name@plural}
+\makeatother
+
+% Unicode characters
+
+% Punctuation - only in text mode
+\DeclareUnicodeCharacter{00A0}{~}
+\DeclareUnicodeCharacter{2010}{-}
+\DeclareUnicodeCharacter{2013}{--}
+\DeclareUnicodeCharacter{2014}{---}
+\DeclareUnicodeCharacter{2009}{\,}
+\DeclareUnicodeCharacter{2026}{\textellipsis}
+
+% Declare euro symbol with declareunicodeeuro.tex
+
+% Greek letters - only in math mode
+\DeclareUnicodeCharacter{0391}{A}
+\DeclareUnicodeCharacter{0392}{B}
+\DeclareUnicodeCharacter{0393}{\Gamma}
+\DeclareUnicodeCharacter{0394}{\Delta}
+\DeclareUnicodeCharacter{0395}{E}
+\DeclareUnicodeCharacter{0396}{Z}
+\DeclareUnicodeCharacter{0397}{H}
+\DeclareUnicodeCharacter{0398}{\Theta}
+\DeclareUnicodeCharacter{0399}{I}
+\DeclareUnicodeCharacter{039A}{K}
+\DeclareUnicodeCharacter{039B}{\Lambda}
+\DeclareUnicodeCharacter{039C}{M}
+\DeclareUnicodeCharacter{039D}{N}
+\DeclareUnicodeCharacter{039E}{\Xi}
+\DeclareUnicodeCharacter{039F}{O}
+\DeclareUnicodeCharacter{03A0}{\Pi}
+\DeclareUnicodeCharacter{03A1}{P}
+\DeclareUnicodeCharacter{03A3}{\Sigma}
+\DeclareUnicodeCharacter{03A4}{T}
+\DeclareUnicodeCharacter{03A5}{Y}
+\DeclareUnicodeCharacter{03A6}{\Phi}
+\DeclareUnicodeCharacter{03A7}{X}
+\DeclareUnicodeCharacter{03A8}{\Psi}
+\DeclareUnicodeCharacter{03A9}{\Omega}
+
+\DeclareUnicodeCharacter{03B1}{\alpha}
+\DeclareUnicodeCharacter{03B2}{\beta}
+\DeclareUnicodeCharacter{03B3}{\gamma}
+\DeclareUnicodeCharacter{03B4}{\delta}
+\DeclareUnicodeCharacter{03B5}{\epsilon}
+\DeclareUnicodeCharacter{03B6}{\zeta}
+\DeclareUnicodeCharacter{03B7}{\eta}
+\DeclareUnicodeCharacter{03B8}{\theta}
+\DeclareUnicodeCharacter{03B9}{\iota}
+\DeclareUnicodeCharacter{03BA}{\kappa}
+\DeclareUnicodeCharacter{03BB}{\lambda}
+\DeclareUnicodeCharacter{03BC}{\mu}
+\DeclareUnicodeCharacter{03BD}{\nu}
+\DeclareUnicodeCharacter{03BE}{\xi}
+\DeclareUnicodeCharacter{03BF}{\omicron}
+\DeclareUnicodeCharacter{03C0}{\pi}
+\DeclareUnicodeCharacter{03C1}{\rho}
+\DeclareUnicodeCharacter{03C3}{\sigma}
+\DeclareUnicodeCharacter{03C4}{\tau}
+\DeclareUnicodeCharacter{03C5}{\upsilon}
+\DeclareUnicodeCharacter{03C6}{\phi}
+\DeclareUnicodeCharacter{03C7}{\chi}
+\DeclareUnicodeCharacter{03C8}{\psi}
+\DeclareUnicodeCharacter{03C9}{\omega}
+
+% Diacritics - only in text mode
+% See https://en.wikibooks.org/wiki/LaTeX/Special_Characters#Escaped_codes
+% for a list of diacritic commands
+\DeclareUnicodeCharacter{0229}{\c{e}}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
+
+    % Prevents underscores (e.g. in BibTeX DOI) from crashing compilation
+
+% define "struts", as suggested by Claudio Beccari in
+%    a piece in TeX and TUG News, Vol. 2, 1993.
+\newcommand\Tstrut{\rule{0pt}{2.6ex}}         % = `top' strut
+\newcommand\Bstrut{\rule[-0.9ex]{0pt}{0pt}}   % = `bottom' strut
+
+% Hacks
+% Add alignment characters to substack - https://tex.stackexchange.com/a/198806
+\makeatletter
+\newcommand{\subalign}[1]{%
+  \vcenter{%
+    \Let@ \restore@math@cr \default@tag
+    \baselineskip\fontdimen10 \scriptfont\tw@
+    \advance\baselineskip\fontdimen12 \scriptfont\tw@
+    \lineskip\thr@@\fontdimen8 \scriptfont\thr@@
+    \lineskiplimit\lineskip
+    \ialign{\hfil$\m@th\scriptstyle##$&$\m@th\scriptstyle{}##$\hfil\crcr
+      #1\crcr
+    }%
+  }%
+}
+\makeatother
+
+% Symbols
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\diff}[2][]{\frac{d #1}{d #2}}
+\newcommand{\setN}{{\mathbb N}}
+\newcommand{\defeq}{\stackrel{\text{\tiny def}}{=}}
+\newcommand{\normalN}{\mathcal{N}}
+\DeclareMathOperator{\Expect}{E}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Poisson}{Pois}
+\DeclareMathOperator{\Binom}{Binom}
+\DeclareMathOperator{\Bernoulli}{Bernoulli}
+\DeclareMathOperator{\Uniform}{Uniform}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\RMSE}{RMSE}
+%\crefname{appsec}{Appendix}{appendices}
+
+% \newcommand{\procedure}[1]{\texttt{\textsc{#1}}}
+\newcommand{\procedure}[1]{#1}
+
+
+% Variable modifiers
+\newcommand{\map}[1]{{#1}_{\scriptscriptstyle \mathrm{MAP}}}
+
+% Typesetting
+\renewcommand{\vec}[1]{\bm{#1}}
+
+% Names
+% (Use of \def and / prevents missing spaces after macro)
+
+
+% Functions
+\newcommand{\Drel}{Δ_{\mathrm{rel}}}
+\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+
+% Variables
+\providepackage{mathrsfs}
+\providepackage{etoolbox}
+\newcommand{\hist}{\mathcal{H}}
+\newcommand{\histk}{\mathcal{H}^{(k)}}
+\newcommand{\data}{\mathcal{A}}
+\newcommand{\Ak}{A^{(k)}}
+\newcommand{\Al}{A^{(l)}}
+\newcommand{\pk}{p^{(k)}}
+\newcommand{\dist}{\mathcal{D}}
+\newcommand{\idxset}{\mathcal{I}}
+\newcommand{\params}{η}
+\newcommand{\param}{η}
+%\newcommand{\paramsubset}[1]{η_{#1}}
+\newcommand{\subsetconn}{{η_1}}
+\newcommand{\subsetadap}{{η_2}}
+\newcommand{\subsetall}{{η_3}}
+\newcommand{\Llen}{L}
+\newcommand{\Blen}{B}
+\newcommand{\Lburn}{{\Llen_{\mathrm{burnin}}}}
+\newcommand{\Bburn}{{\Blen_{\mathrm{burnin}}}}
+\newcommand{\gammaL}{{γ_\Llen}}
+\newcommand{\gammaB}{{γ_\Blen}}
+% \newcommand{\memlen}{{k_{θ}}}
+\newcommand{\memlen}{K}
+\newcommand{\free}{\mathrm{free}}
+\newcommand{\kref}{{k_{\mathrm{ref}}}}
+\newcommand{\krefa}{{k_{\mathrm{ref}, α}}}
+\newcommand{\gclip}{g_{\mathrm{clip}}}
+\newcommand{\gmax}{g_{\mathrm{max}}}
+\newcommand{\ur}{u_{\mathrm{r}}}
+\newcommand{\urest}{u_{\mathrm{rest}}}
+\newcommand{\uresti}{u_{\mathrm{rest}, i}}
+\newcommand{\uresta}{u_{\mathrm{rest}, α}}
+\newcommand{\uth}{u_{\mathrm{th}}}
+\newcommand{\utha}{u_{\mathrm{th}, α}}
+\newcommand{\tref}{t_{\mathrm{ref}}}
+\newcommand{\trefa}{t_{\mathrm{ref,α}}}
+\newcommand{\Iext}{I_{\mathrm{ext}}}
+\newcommand{\Iexta}{I_{\mathrm{ext}, α}}
+\newcommand{\Isyn}{I_{\mathrm{syn}}}
+\newcommand{\Isyni}{I_{\mathrm{syn},i}}
+\newcommand{\Itest}{I_{\mathrm{test}}}  % External input used to compute RMS, ρ
+\newcommand{\lfree}{λ_{\free}}
+\newcommand{\lfreea}{λ_{\free,α}}
+\newcommand{\Du}{{Δ_{\mathrm{u}}}}
+\newcommand{\DuE}{{Δ_{\mathrm{u},E}}}
+\newcommand{\DuI}{{Δ_{\mathrm{u},I}}}
+\newcommand{\Dua}{{Δ_{\mathrm{u},α}}}
+\newcommand{\Duab}{{Δ_{\mathrm{u},αβ}}}
+\newcommand{\state}{{S}}
+\newcommand{\statespace}{\mathcal{S}}
+\newcommand{\Aspace}{\mathcal{A}}
+\newcommand{\Gstep}{G_{\mathrm{step}}}
+\newcommand{\kmax}{k_{\mathrm{max}}}
+\newcommand{\sH}{{\mathscr{H}}}
+\newcommand{\muOU}{{μ_{\mathrm{\scriptscriptstyle OU}}}}
+\newcommand{\muOUa}[1][α]{{μ_{\mathrm{\scriptscriptstyle OU},#1}}}
+\newcommand{\tOU}{{τ_{\mathrm{\scriptscriptstyle OU}}}}
+\newcommand{\tOUa}[1][α]{{τ_{\mathrm{\scriptscriptstyle OU},#1}}}
+\newcommand{\Abar}[1][]{%
+  \ifstrempty{#1}{\bar{A}}
+                 {{\bar{A}^{(#1)}}}}
+\newcommand{\Abara}[1][]{%
+  \ifstrempty{#1}{\bar{A}_{α}}
+                 {{\bar{A}_{α}^{(#1)}}}}
+\newcommand{\atrue}[1][]{%
+  \ifstrempty{#1}{{a^{\mathrm{\scriptscriptstyle true}}}}
+                 {{a^{\mathrm{\scriptscriptstyle true} (#1)}}}}
+\newcommand{\Atrue}[1][]{%
+  \ifstrempty{#1}{{A^{\mathrm{\scriptscriptstyle true}}}}
+                 {{A^{\mathrm{\scriptscriptstyle true} (#1)}}}}
+\newcommand{\Atruer}[1][]{%
+  \ifstrempty{#1}{{A^{\mathrm{\scriptscriptstyle true}, r}}}
+                 {{A^{\mathrm{\scriptscriptstyle true} (#1), r}}}}
+\newcommand{\Atruebar}[1][]{%
+  \ifstrempty{#1}{{\bar{A}^{\mathrm{\scriptscriptstyle true}}}}
+                 {{\bar{A}^{\mathrm{\scriptscriptstyle true} (#1)}}}}
+\newcommand{\atest}[1][]{%
+  \ifstrempty{#1}{\hat{a}}
+                 {{\hat{a}^{(#1)}}}}
+\newcommand{\Atest}[1][]{%
+  \ifstrempty{#1}{\hat{A}}
+                 {{\hat{A}^{(#1)}}}}
+\newcommand{\Atestr}[1][]{%
+  \ifstrempty{#1}{\hat{A}^{r}}
+                 {{\hat{A}^{(#1),r}}}}
+\newcommand{\Atestbar}[1][]{%
+  \ifstrempty{#1}{\hat{\bar{A}}}
+                 {{\hat{\bar{A}}^{(#1)}}}}
+\newcommand{\atruea}[1][]{%
+  \ifstrempty{#1}{{a_{α}^{\mathrm{\scriptscriptstyle true}}}}
+                 {{a_{α}^{\mathrm{\scriptscriptstyle true} (#1)}}}}
+\newcommand{\Atruea}[1][]{%
+  \ifstrempty{#1}{{A_{α}^{\mathrm{\scriptscriptstyle true}}}}
+                 {{A_{α}^{\mathrm{\scriptscriptstyle true} (#1)}}}}
+\newcommand{\atesta}[1][]{%
+  \ifstrempty{#1}{{\hat{a}_{α}}}
+                 {{\hat{a}_{α}^{(#1)}}}}
+\newcommand{\Atesta}[1][]{%
+  \ifstrempty{#1}{{\hat{A}_{α}}}
+                 {{\hat{A}_{α}^{(#1)}}}}
+
+
+\begin{document}
+
+$$\int p(x | \hist) \dd$$
+
+\end{document}
