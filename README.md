@@ -1,16 +1,9 @@
-© 2020 Alexandre René
-Licensed under the Apache License, Version 2.0
-
 This package combines the functionality of two other Python packages:
   
   - [*FLaP*](https://pythonhosted.org/FLaP/), for flattening a hierarchy of LaTeX files.
   - [*de-macro*](https://www.ctan.org/pkg/de-macro), for replacing macros in a document by their definitions.
 
 It is essentially a Python 3 port of the *de-macro* script; *FLaP* is simply called before launching the de-macroing routines.
-
-Original copyright notice:<br>
-  Copyright 2005 Péter Gács<br>
-  Licensed under the Academic Free Licence version 2.1
 
 ----
 
@@ -59,7 +52,28 @@ Original copyright notice:<br>
     definitions left therein are lost.
 
 ---
+
+   Copyright 2020 Alexandre René
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+---
 # Original *de-macro* readme
+
+
+Original copyright notice:<br>
+  Copyright 2005 Péter Gács<br>
+  Licensed under the Academic Free Licence version 2.1
 
                           DE-MACRO
 
