@@ -236,146 +236,25 @@
 }
 \makeatother
 
-% Symbols
-\newcommand{\dd}{\mathrm{d}}
-\newcommand{\diff}[2][]{\frac{d #1}{d #2}}
-\newcommand{\setN}{{\mathbb N}}
-\newcommand{\defeq}{\stackrel{\text{\tiny def}}{=}}
-\newcommand{\normalN}{\mathcal{N}}
-\DeclareMathOperator{\Expect}{E}
-\DeclareMathOperator{\Var}{Var}
-\DeclareMathOperator{\Poisson}{Pois}
-\DeclareMathOperator{\Binom}{Binom}
-\DeclareMathOperator{\Bernoulli}{Bernoulli}
-\DeclareMathOperator{\Uniform}{Uniform}
-\DeclareMathOperator*{\argmax}{argmax}
-\DeclareMathOperator*{\RMSE}{RMSE}
-%\crefname{appsec}{Appendix}{appendices}
-
-% \newcommand{\procedure}[1]{\texttt{\textsc{#1}}}
-\newcommand{\procedure}[1]{#1}
-
-
-% Variable modifiers
-\newcommand{\map}[1]{{#1}_{\scriptscriptstyle \mathrm{MAP}}}
-
-% Typesetting
-\renewcommand{\vec}[1]{\bm{#1}}
-
-% Names
-% (Use of \def and / prevents missing spaces after macro)
-
-
-% Functions
-\newcommand{\Drel}{Δ_{\mathrm{rel}}}
-\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
-
-% Variables
-\providepackage{mathrsfs}
-\providepackage{etoolbox}
-\newcommand{\hist}{\mathcal{H}}
-\newcommand{\histk}{\mathcal{H}^{(k)}}
-\newcommand{\data}{\mathcal{A}}
-\newcommand{\Ak}{A^{(k)}}
-\newcommand{\Al}{A^{(l)}}
-\newcommand{\pk}{p^{(k)}}
-\newcommand{\dist}{\mathcal{D}}
-\newcommand{\idxset}{\mathcal{I}}
-\newcommand{\params}{η}
-\newcommand{\param}{η}
-%\newcommand{\paramsubset}[1]{η_{#1}}
-\newcommand{\subsetconn}{{η_1}}
-\newcommand{\subsetadap}{{η_2}}
-\newcommand{\subsetall}{{η_3}}
-\newcommand{\Llen}{L}
-\newcommand{\Blen}{B}
-\newcommand{\Lburn}{{\Llen_{\mathrm{burnin}}}}
-\newcommand{\Bburn}{{\Blen_{\mathrm{burnin}}}}
-\newcommand{\gammaL}{{γ_\Llen}}
-\newcommand{\gammaB}{{γ_\Blen}}
-% \newcommand{\memlen}{{k_{θ}}}
-\newcommand{\memlen}{K}
-\newcommand{\free}{\mathrm{free}}
-\newcommand{\kref}{{k_{\mathrm{ref}}}}
-\newcommand{\krefa}{{k_{\mathrm{ref}, α}}}
-\newcommand{\gclip}{g_{\mathrm{clip}}}
-\newcommand{\gmax}{g_{\mathrm{max}}}
-\newcommand{\ur}{u_{\mathrm{r}}}
-\newcommand{\urest}{u_{\mathrm{rest}}}
-\newcommand{\uresti}{u_{\mathrm{rest}, i}}
-\newcommand{\uresta}{u_{\mathrm{rest}, α}}
-\newcommand{\uth}{u_{\mathrm{th}}}
-\newcommand{\utha}{u_{\mathrm{th}, α}}
-\newcommand{\tref}{t_{\mathrm{ref}}}
-\newcommand{\trefa}{t_{\mathrm{ref,α}}}
-\newcommand{\Iext}{I_{\mathrm{ext}}}
-\newcommand{\Iexta}{I_{\mathrm{ext}, α}}
-\newcommand{\Isyn}{I_{\mathrm{syn}}}
-\newcommand{\Isyni}{I_{\mathrm{syn},i}}
-\newcommand{\Itest}{I_{\mathrm{test}}}  % External input used to compute RMS, ρ
-\newcommand{\lfree}{λ_{\free}}
-\newcommand{\lfreea}{λ_{\free,α}}
-\newcommand{\Du}{{Δ_{\mathrm{u}}}}
-\newcommand{\DuE}{{Δ_{\mathrm{u},E}}}
-\newcommand{\DuI}{{Δ_{\mathrm{u},I}}}
-\newcommand{\Dua}{{Δ_{\mathrm{u},α}}}
-\newcommand{\Duab}{{Δ_{\mathrm{u},αβ}}}
-\newcommand{\state}{{S}}
-\newcommand{\statespace}{\mathcal{S}}
-\newcommand{\Aspace}{\mathcal{A}}
-\newcommand{\Gstep}{G_{\mathrm{step}}}
-\newcommand{\kmax}{k_{\mathrm{max}}}
-\newcommand{\sH}{{\mathscr{H}}}
-\newcommand{\muOU}{{μ_{\mathrm{\scriptscriptstyle OU}}}}
-\newcommand{\muOUa}[1][α]{{μ_{\mathrm{\scriptscriptstyle OU},#1}}}
-\newcommand{\tOU}{{τ_{\mathrm{\scriptscriptstyle OU}}}}
-\newcommand{\tOUa}[1][α]{{τ_{\mathrm{\scriptscriptstyle OU},#1}}}
-\newcommand{\Abar}[1][]{%
-  \ifstrempty{#1}{\bar{A}}
-                 {{\bar{A}^{(#1)}}}}
-\newcommand{\Abara}[1][]{%
-  \ifstrempty{#1}{\bar{A}_{α}}
-                 {{\bar{A}_{α}^{(#1)}}}}
-\newcommand{\atrue}[1][]{%
-  \ifstrempty{#1}{{a^{\mathrm{\scriptscriptstyle true}}}}
-                 {{a^{\mathrm{\scriptscriptstyle true} (#1)}}}}
-\newcommand{\Atrue}[1][]{%
-  \ifstrempty{#1}{{A^{\mathrm{\scriptscriptstyle true}}}}
-                 {{A^{\mathrm{\scriptscriptstyle true} (#1)}}}}
-\newcommand{\Atruer}[1][]{%
-  \ifstrempty{#1}{{A^{\mathrm{\scriptscriptstyle true}, r}}}
-                 {{A^{\mathrm{\scriptscriptstyle true} (#1), r}}}}
-\newcommand{\Atruebar}[1][]{%
-  \ifstrempty{#1}{{\bar{A}^{\mathrm{\scriptscriptstyle true}}}}
-                 {{\bar{A}^{\mathrm{\scriptscriptstyle true} (#1)}}}}
-\newcommand{\atest}[1][]{%
-  \ifstrempty{#1}{\hat{a}}
-                 {{\hat{a}^{(#1)}}}}
-\newcommand{\Atest}[1][]{%
-  \ifstrempty{#1}{\hat{A}}
-                 {{\hat{A}^{(#1)}}}}
-\newcommand{\Atestr}[1][]{%
-  \ifstrempty{#1}{\hat{A}^{r}}
-                 {{\hat{A}^{(#1),r}}}}
-\newcommand{\Atestbar}[1][]{%
-  \ifstrempty{#1}{\hat{\bar{A}}}
-                 {{\hat{\bar{A}}^{(#1)}}}}
-\newcommand{\atruea}[1][]{%
-  \ifstrempty{#1}{{a_{α}^{\mathrm{\scriptscriptstyle true}}}}
-                 {{a_{α}^{\mathrm{\scriptscriptstyle true} (#1)}}}}
-\newcommand{\Atruea}[1][]{%
-  \ifstrempty{#1}{{A_{α}^{\mathrm{\scriptscriptstyle true}}}}
-                 {{A_{α}^{\mathrm{\scriptscriptstyle true} (#1)}}}}
-\newcommand{\atesta}[1][]{%
-  \ifstrempty{#1}{{\hat{a}_{α}}}
-                 {{\hat{a}_{α}^{(#1)}}}}
-\newcommand{\Atesta}[1][]{%
-  \ifstrempty{#1}{{\hat{A}_{α}}}
-                 {{\hat{A}_{α}^{(#1)}}}}
-
+\usepackage{definitions-private}
 
 \begin{document}
 
-$$\int p(x | \hist) \dd$$
+$$\Expect[x|\hist] = \int x p(x | \hist) \dd$$
 
+\section{fwoop}
+Like \ADAM/, but different. Fwoop:
+$$y^*(x) = \argmax_{n\in \setN} φ_n(x)$$
+
+$$\map{\vec{x}} = \argmax_{\mesoGIF/}$$
+
+\begin{equation}
+  \Duab < \abs{\Drel} < \gammaB \quad \text{When rock beats scissors.}$$
+\end{equation}
+
+Not the \mesoGIF/ model for $\hist$:
+\begin{align}
+  \hist &= \{\histk\}_{k>\Lburn}
+  \Abar &= \muOU + \muOUa + \muOU[β] + \Iexta
+\end{align}
 \end{document}

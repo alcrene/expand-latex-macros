@@ -1,0 +1,46 @@
+% Symbols
+\newcommand{\dd}{\mathrm{d}}
+% \newcommand{\diff}[2][]{\frac{d #1}{d #2}}
+\newcommand{\diff}[2]{\frac{d #1}{d #2}}
+\newcommand{\setN}{{\mathbb N}}
+\DeclareMathOperator{\Expect}{E}
+\DeclareMathOperator*{\argmax}{argmax}
+
+\newcommand{\procedure}[1]{#1}
+
+% Variable modifiers
+\newcommand{\map}[1]{{#1}_{\scriptscriptstyle \mathrm{MAP}}}
+
+% Typesetting
+\renewcommand{\vec}[1]{\bm{#1}}
+
+% Names
+\def\mesoGIF/{mesoGIF}
+\def\ADAM/{\procedure{adam}}
+
+% Functions
+\newcommand{\Drel}{Δ_{\mathrm{rel}}}
+\newcommand{\abs}[1]{\left\lvert#1\right\rvert}
+
+% Variables
+\providepackage{mathrsfs}
+\providepackage{etoolbox}
+\newcommand{\hist}{\mathcal{H}}
+\newcommand{\histk}{\mathcal{H}^{(k)}}
+\newcommand{\Lburn}{{\Llen_{\mathrm{burnin}}}}
+\newcommand{\Llen}{L}
+\newcommand{\Blen}{B}
+\newcommand{\gammaB}{{γ_\Blen}}
+\newcommand{\Iexta}{I_{\mathrm{ext}, α}}
+\newcommand{\Duab}{{Δ_{\mathrm{u},αβ}}}
+\newcommand{\muOU}{{μ_{\mathrm{\scriptscriptstyle OU}}}}
+\newcommand{\muOUa}[1]{{μ_{\mathrm{\scriptscriptstyle OU},#1}}}
+\newcommand{\Abar}[1]{%
+  \ifstrempty{#1}{\bar{A}}
+                 {{\bar{A}^{(#1)}}}}
+\newcommand{\Abara}[1]{%
+  \ifstrempty{#1}{\bar{A}_{α}}
+                 {{\bar{A}_{α}^{(#1)}}}}
+\newcommand{\atrue}[1]{%
+  \ifstrempty{#1}{{a^{\mathrm{\scriptscriptstyle true}}}}
+                 {{a^{\mathrm{\scriptscriptstyle true} (#1)}}}}

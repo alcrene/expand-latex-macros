@@ -23,16 +23,15 @@ setup(
 
     py_modules=["expand_latex_macros"],
 
-    python_requires='>=3.3, <4',
+    python_requires='>=3.6, <4',
 
-    # install_requires=[
-    #    'flap',
-    #    'click'
-    #]
+    install_requires=[
+        'flap',
+        'click'
+    ],
 
-    entry_points={
-        'console_script': [
-            'expand-latex-macros=expand_latex_macros:main'
-        ],
-    },
+    entry_points="""
+        [console_scripts]
+        expand-latex-macros=expand_latex_macros:main
+    """
 )

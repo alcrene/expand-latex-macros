@@ -1,0 +1,156 @@
+% Packages
+\providepackage{amsmath}
+\providepackage{amssymb}
+\providepackage[T1]{fontenc}
+\providepackage[utf8]{inputenc}
+\providepackage{etoolbox}
+\providepackage{xcolor}
+\providepackage{algorithm}
+\providepackage{booktabs}
+\providepackage{graphicx}
+
+
+% Textual (citet) and parenthetical (citep) citations.
+% These are the commands provided by natbib, which is used
+% in some journal templates (e.g. APS)
+% Providing replacement placeholder macros allows us to
+% use them with any template, in the worst case falling back
+% to the default `\cite`.
+\providepackage{cite}
+\providepackage{twoopt}
+\providecommandtwoopt{\citep}[3][][]{\cite{#3}}
+\providecommandtwoopt{\citet}[3][][]{\cite{#3}}
+  % In addition to fixing some citation typography, `cite` will automatically
+  % move commas following superscript citations. Thanks to this, we don't need to
+  % hard-code the citation type into the text: we write `bla \citep{ref},`
+  % and let the package sort out whether to remove the preceding space or move
+  % the comma according the formatting options.
+
+% Fallback commands for tables when booktabs is not loaded
+\providecommand{\thickhline}{\hline}   % PLOS command
+\providecommand{\toprule}{\thickhline}
+\providecommand{\bottomrule}{\thickhline}
+\providecommand{\midrule}{\hline}
+\providecommand{\cmidrule}[1]{\cline{#1}}
+
+% Ref packages need to be loaded last, and in this order
+\providepackage{nameref}
+\providepackage{hyperref}
+\hypersetup{draft=false,colorlinks,breaklinks=true,
+            linkcolor=black,citecolor=black,filecolor=black}
+\providepackage{cleveref}
+% Define 'subfigure' reference type, introduced by subcaption
+\makeatletter
+\if@cref@capitalise
+  \if@cref@abbrev
+    \crefname{subfigure}{Fig.}{Figs.}
+  \else
+    \crefname{subfigure}{Figure}{Figures}
+  \fi
+\else
+  \if@cref@abbrev
+    \crefname{subfigure}{fig.}{figs.}
+  \else
+    \crefname{subfigure}{figure}{figures}
+  \fi
+\fi
+\makeatother
+\newcommand{\textrf}[1]{\textsc{#1}}
+\Crefname{subfigure}{Figure}{Figures}
+\newcommand{\creffloat}[1]{\namecref{#1}~\ref{#1}}
+\newcommand{\creffloats}[2]{\namecrefs{#1}~\ref{#1} and~\ref{#2}}
+\newcommand{\creffloatrange}[2]{\namecrefs{#1}~\ref{#1}--\ref{#2}}
+\newcommand{\Creffloat}[1]{\nameCref{#1}~\ref{#1}}
+\newcommand{\Creffloats}[2]{\nameCrefs{#1}~\ref{#1} and~\ref{#2}}
+\newcommand{\Creffloatrange}[2]{\nameCrefs{#1}~\ref{#1}--\ref{#2}}
+  % Use these instead of `\cref` when referencing floats
+  % (i.e. `figure` or `table` environments)
+  % They avoid an issue caused by using the nameref, hyperref
+  % and cleveref packages with the 'draft' option.
+  % The disadvantage is that you lose cleveref's ability
+  % to compress references.
+
+% Add \titlerunning and \authorrunning macros, for papers that use them
+\providecommand{\thetitle}{}
+\providecommand{\runtitle}{}
+\providecommand{\runauthor}{}
+\renewcommand{\title}[1]{\renewcommand{\thetitle}{#1}}
+\providecommand{\titlerunning}[1]{\renewcommand{\runtitle}{#1}}
+\providecommand{\authorrunning}[1]{\renewcommand{\runauthor}{#1}}
+
+
+% Default float placement
+\makeatletter
+\renewcommand{\fps@figure}{!htp}
+\renewcommand{\fps@table}{!htbp}
+\makeatother
+\renewcommand{\textfraction}{.15}  % default .2 or .3
+\renewcommand{\topfraction}{.8}    % default .7
+\renewcommand{\floatpagefraction}{.8}  % defautl .5 or .6
+\renewcommand{\bottomfraction}{.4} % default .3
+
+\newcommand{\captitle}[1]{\textbf{#1}}
+% Subfigure captions
+\providepackage{subcaption}
+\newcommand{\subrefformat}[1]{\textbf{#1}}
+\newcommand{\subreflabel}[1]{\subrefformat{\subref{#1}.}}
+\newcommand{\subreflabels}[2]{\subrefformat{\subref{#1},\subref{#2}.}}
+%\captionsetup{subrefformat=parens}
+\DeclareCaptionSubType[Alph]{figure}  % Use capital letters for subref labels
+\DeclareCaptionSubType[Alph]{table}
+
+% Use inline floats for lists of headings and floats (e.g. appendices), where
+% there may be no referencing text and heading-floats order is important.
+% https://tex.stackexchange.com/a/169092; https://tex.stackexchange.com/a/15090
+% https://tex.stackexchange.com/a/154475
+\let\oldcaption\caption
+\newenvironment{inlinetable}[1][]  % Optional args gobble up eg. [H!], [tbp]
+               {\renewcommand{\caption}[1]{
+                  \let\caption\oldcaption
+                  \captionof{table}{##1} \vspace{0.5ex}}
+                \vspace{1ex} \noindent\begin{minipage}{\textwidth}}
+               {\end{minipage} \vfill\null}
+\newenvironment{inlinefigure}[1][]
+               {\renewcommand{\caption}[1]{
+                  \let\caption\oldcaption
+                  \vspace{0.5ex}\captionof{figure}{##1}}
+                \vspace{1ex} \noindent\begin{minipage}{\textwidth}}
+               {\end{minipage} \vfill\null}
+
+% Useful for using cleveref and citations
+\makeatletter
+\newcommand{\eqname}{\cref@equation@name}
+\newcommand{\Eqname}{\Cref@equation@name}
+\newcommand{\eqnames}{\cref@equation@name@plural}
+\newcommand{\Eqnames}{\Cref@equation@name@plural}
+\newcommand{\figname}{\cref@figure@name}
+\newcommand{\Figname}{\Cref@figure@name}
+\newcommand{\fignames}{\cref@figure@name@plural}
+\newcommand{\Fignames}{\Cref@figure@name@plural}
+\makeatother
+
+% Unicode characters
+\input{declareunicode}
+    % Prevents underscores (e.g. in BibTeX DOI) from crashing compilation
+
+% define "struts", as suggested by Claudio Beccari in
+%    a piece in TeX and TUG News, Vol. 2, 1993.
+\newcommand\Tstrut{\rule{0pt}{2.6ex}}         % = `top' strut
+\newcommand\Bstrut{\rule[-0.9ex]{0pt}{0pt}}   % = `bottom' strut
+
+% Hacks
+% Add alignment characters to substack - https://tex.stackexchange.com/a/198806
+\makeatletter
+\newcommand{\subalign}[1]{%
+  \vcenter{%
+    \Let@ \restore@math@cr \default@tag
+    \baselineskip\fontdimen10 \scriptfont\tw@
+    \advance\baselineskip\fontdimen12 \scriptfont\tw@
+    \lineskip\thr@@\fontdimen8 \scriptfont\thr@@
+    \lineskiplimit\lineskip
+    \ialign{\hfil$\m@th\scriptstyle##$&$\m@th\scriptstyle{}##$\hfil\crcr
+      #1\crcr
+    }%
+  }%
+}
+\makeatother

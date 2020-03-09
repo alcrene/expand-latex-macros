@@ -1,0 +1,4 @@
+# Don't track test output directories
+tests/*-expanded
+tests/*/*-seen.sty
+tests/*/*-seen.tex

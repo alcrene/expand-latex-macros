@@ -5,8 +5,19 @@ r"""
                           DE-MACRO
                           package
 
-This is first and foremost a Python3 port of the de-macro package.
+This is first and foremost a Python3 port of the de-macro package. It also calls the FLaP package to first flatten the directory.
 The original docstring for the de-macro package follows below.
+
+Usage:
+
+    expand-latex-macros [.tex file] [output directory]
+
+`.tex file` is your usual main file – the one you run `(pdf)latex` on.
+The contents of `output directory` will be overwritten the the merged and expanded tex files.
+Macros definitions should be in a file whose name ends with `-private.sty` and imported with `\usepackage`.
+
+---
+Original docstring
 
 PURPOSE
 
@@ -67,6 +78,12 @@ then remove all *-clean.tex files!
 """
 
 import sys, os, re, shelve
+from warnings import warn
+from pathlib import Path
+import shutil
+
+import click
+import flap.ui
 
 # Utilities
 
@@ -75,12 +92,17 @@ class No_detail:
 
 no_detail = No_detail()
 
+# class Error(Exception):
+#     """Base class for exceptions in this module."""
+#     pass
 
-class Error(Exception):
-    """Base class for exceptions in this module."""
+class ArgumentError(RuntimeError):
     pass
 
-class Empty_text_error(Error):
+class ParsingError(ValueError):
+    pass
+
+class Empty_text_error(ValueError):
     """Exception raised for errors in the input.
 
     Attributes:
@@ -92,13 +114,11 @@ class Empty_text_error(Error):
         self.data = data
         self.message = message
 
-def warn(error_message, detail = no_detail):
-    sys.stderr.write(error_message + "\n")
-    if no_detail != detail:
-        sys.stderr.write(detail.strerror + "\n")
-
-def die(error_message, detail = no_detail):
-    warn(error_message, detail = no_detail)
+def die(error_message, exception):
+    emsg = str(exception)
+    if len(emsg) > 0:
+        error_message += '\n' + emsg
+    warn(error_message)
     sys.exit(1)
 
 def getopt_map(one_letter_opts, long_optlist):
@@ -117,14 +137,14 @@ def newer(file1, file2):
 
     try:
         stat_return = os.lstat(file1)
-    except OSError, detail:
-	die("lstat " + file1 + " failed:", detail)
+    except OSError as e:
+        die("lstat " + file1 + " failed:", e)
     time1 = stat_return.st_mtime
 
     try:
         stat_return = os.lstat(file2)
-    except OSError, detail:
-	die("lstat " + file2 + " failed:", detail)
+    except OSError as e:
+        die("lstat " + file2 + " failed:", e)
     time2 = stat_return.st_mtime
 
     return time1 > time2
@@ -186,7 +206,7 @@ def isletter(c, isatletter=False):
         return c.isalpha()
 
 class Token:
-    """Type 0 means ordinary character, type 1 means escape sequence
+    r"""Type 0 means ordinary character, type 1 means escape sequence
     (without the \ ), type 2 means comment.
     """
     simple_ty = 0
@@ -287,7 +307,7 @@ def tokenize(in_str):
     cs = Char_stream(in_str)
     cs.reset()
     if not cs.legal():
-        raise "No string to tokenize."
+        raise ValueError("No string to tokenize.")
     while cs.uplegal():
         if "%" == cs.item:
             comment = cs.scan_comment_token()
@@ -413,7 +433,7 @@ class Char_stream(Stream):
         return comment
 
     def scan_input_filename(self):
-        """We just read an \input token.  The next group or word will be
+        r"""We just read an \input token.  The next group or word will be
         interpreted as a filename (possibly without .tex).
         Return the filename.
         """
@@ -430,7 +450,7 @@ class Char_stream(Stream):
         return file
 
     def scan_package_filenames(self):
-        """We just read a \usepackage token.  The next group will be
+        r"""We just read a \usepackage token.  The next group will be
         interpreted as a list of filenames (without .sty) separated by commas.
         Return the list.
         """
@@ -439,7 +459,7 @@ class Char_stream(Stream):
             item = self.next()
         file = ""
         if not "{" == item:
-            raise "\\usepackage not followed by brace."
+            raise ParsingError("\\usepackage not followed by brace.")
         item = self.next()
         while self.uplegal() and not blank_or_rbrace_re.match(item):
             file += item
@@ -456,7 +476,7 @@ class Tex_stream(Stream):
     debug = False
 
     def smart_tokenize(self, in_str, handle_inputs=False):
-        """Returns a list of tokens.
+        r"""Returns a list of tokens.
         It may interpret and carry out all \input commands.
         """
         self.data = []
@@ -465,7 +485,7 @@ class Tex_stream(Stream):
         cs = Char_stream(in_str)
         cs.reset()
         if not cs.legal():
-            raise "No string to tokenize."
+            raise ValueError("No string to tokenize.")
         while cs.uplegal():
             if "%" == cs.item:
                 comment = cs.scan_comment_token()
@@ -518,7 +538,7 @@ class Tex_stream(Stream):
         return self.data
 
     def smart_detokenize(self):
-        """
+        r"""
         Output is a string.
         If the list contains an \input{file} then the content of file
         file-clean.tex replaces it in the output.
@@ -544,7 +564,7 @@ class Tex_stream(Stream):
                 group = self.scan_group()
                 file = detokenize(group.val)
                 clean_file = "%s-clean.tex" % (file)
-                print "Reading file %s" % (clean_file)
+                print("Reading file %s" % (clean_file))
                 fp = open(clean_file,"r")
                 content = fp.read()
                 fp.close()
@@ -565,7 +585,7 @@ class Tex_stream(Stream):
         """Returns group.
         """
         if not self.legal():
-            raise "No group to scan."
+            raise ParsingError("No group to scan.")
         item = self.item
         if not (simple_ty == item.type and "{" == item.val):
             return Group(token_ty, [self.item])
@@ -589,24 +609,25 @@ class Tex_stream(Stream):
         """Returns name.
         """
         if not self.legal():
-            raise "No command name to scan."
+            raise ParsingError("No command name to scan.")
         item = self.item
         name = ""
         if item.type in [esc_symb_ty, esc_str_ty]:
             name = item.val
         else:
             if not "{" == item.val:
-                raise "Command definition misses first {."
+                raise ParsingError("Command definition misses first {.")
             self.next()
             item = self.skip_blank_tokens()
             if not item.type in [esc_symb_ty, esc_str_ty]:
-                raise "Command definition does not begin with control sequence."
+                raise ParsingError("Command definition does not begin with "
+                                   "control sequence.")
             name = item.val
             self.next()
             item = self.skip_blank_tokens()
             if not "}" == item.val:
-                raise ("Definition for commmand %s misses first }., %s" %
-                       (name, item.val))
+                raise ParsingError(f"Definition for commmand {name} misses "
+                                   f"first }}., {item.val}")
         self.next()
         self.skip_blank_tokens()
         return name
@@ -621,27 +642,30 @@ class Tex_stream(Stream):
         definition,
         """
         if not self.legal():
-            raise "No numargs to scan."
+            raise ArgumentError("No numargs to scan.")
         item = self.item
         numargs = 0
         if not simple_ty == item.type:
-            raise "Illegal command or environment definition: "+name
+            raise ValueError("Illegal command or environment definition: "+name)
         if "[" == item.val:
             if not 4 < len(self.data):
-                raise "Command or environment definition is illegal: "+name
+                raise ParsingError(
+                    "Command or environment definition is illegal: "+name)
             item = self.next()
             if not simple_ty == item.type:
-                raise "Illegal command or environment definition: "+name
+                raise ParsingError(
+                    "Illegal command or environment definition: "+name)
             numargs = item.val
             if not pos_digit_re.match(numargs):
-                raise "%s must be argument number after %s" % (numargs, name)
+                raise ParsingError("{} must be argument number after {}"
+                                   .format(numargs, name))
             numargs = int(numargs)
             self.next()
             item = self.skip_blank_tokens()
             if not simple_ty == item.type:
-                raise "Illegal command definition: "+name
+                raise ParsingError("Illegal command definition: "+name)
             if "]" != item.val:
-                raise "Illegal command definition: "+name
+                raise ParsingError("Illegal command definition: "+name)
             self.next()
             self.skip_blank_tokens()
         return numargs
@@ -652,15 +676,17 @@ class Tex_stream(Stream):
         Assumes that the number of arguments is at most 9.
         """
         if not self.legal():
-            raise "No command definition to scan."
+            raise ParsingError("No command definition to scan.")
         item = self.item
         if not 2 < len(self.data):
-            raise "Command definition is illegal."
+            raise ParsingError("Command definition is illegal.")
         # newcommand or renewcommand
         if not item.type in [esc_symb_ty, esc_str_ty]:
-            raise "Command definition should begin with control sequence: "+item.val
+            raise ParsingError("Command definition should begin with control "
+                               "sequence: "+item.val)
         if item.val not in ["newcommand", "renewcommand"]:
-            raise "Command definition should begin with control sequence."
+            raise ParsingError("Command definition should begin with control "
+                               "sequence.")
         self.next()
         self.skip_blank_tokens()
 
@@ -669,7 +695,7 @@ class Tex_stream(Stream):
 
         body_group = self.scan_group()
         if group_ty != body_group.type:
-            raise "Command body missing: "+cmd_name
+            raise ParsingError("Command body missing: "+cmd_name)
         body_val = strip_comments(body_group.val)
         return Command_def(cmd_name, numargs, body_val)
 
@@ -678,25 +704,27 @@ class Tex_stream(Stream):
         Returns name.
         """
         if not self.legal():
-            raise "No environment name to scan."
+            raise ParsingError("No environment name to scan.")
         item = self.item
         if not "{" == item.val:
-            raise "Env. definition begins with %s, not with {" % (item.val)
+            raise ParsingError("Env. definition begins with {}, not with {"
+                               .format(item.val))
         self.next()
         item = self.skip_blank_tokens()
         name = ""
         if not simple_ty == item.type:
-            raise ("1. Env. def. begins with cont. seq. %s, not with env.name."
-                 % (item.val))
+            raise ParsingError("1. Env. def. begins with cont. seq. {}, not "
+                               "with env.name.".format(item.val))
         while self.uplegal() and not blank_or_rbrace_re.match(item.val):
             name += item.val
             item = self.next()
             if not simple_ty == item.type:
-                raise ("2. Env. def. begins with cont. seq. %s, not with env.name."
-                       % (item.val))
+                raise ParsingError("2. Env. def. begins with cont. seq. {}, "
+                                   "not with env.name.".format(item.val))
         item = self.skip_blank_tokens()
         if not "}" == item.val:
-            raise "Command definition does not begin with control sequence."
+            raise ParsingError("Command definition does not begin with "
+                               "control sequence.")
         self.next()
         self.skip_blank_tokens()
         return name
@@ -707,17 +735,18 @@ class Tex_stream(Stream):
         Assumes that the number of arguments is at most 9.
         """
         if not self.legal():
-            raise "No environment definition to scan."
+            raise ParsingError("No environment definition to scan.")
         item = self.item
         if not 7 < len(self.data):
-            raise "Environment definition is illegal."
+            raise ParsingError("Environment definition is illegal.")
         pos = 0
 
         if not item.type in [esc_symb_ty, esc_str_ty]:
-            raise ("Env. definition does not begin with control sequence:"+
-                   item.val)
+            raise ParsingError("Env. definition does not begin with control "
+                               "sequence: "+item.val)
         if item.val not in ["newenvironment", "renewenvironment"]:
-            raise "Env. definition does not begin with control sequence."
+            raise ParsingError("Env. definition does not begin with control "
+                               "sequence.")
         self.next()
         self.skip_blank_tokens()
 
@@ -727,21 +756,21 @@ class Tex_stream(Stream):
 
         begin_group = self.scan_group()
         if group_ty != begin_group.type:
-            raise "Begin body missing: "+env_name
+            raise ParsingError("Begin body missing: "+env_name)
         begin_val = strip_comments(begin_group.val)
 
         self.skip_blank_tokens()
 
         end_group = self.scan_group()
         if group_ty != end_group.type:
-            raise "End body missing:"+env_name
+            raise ParsingError("End body missing:"+env_name)
         end_val = strip_comments(end_group.val)
 
         return Env_def(env_name, numargs, begin_val, end_val)
 
     def scan_defs(self):
         if not self.legal():
-            raise "No definitions to scan."
+            raise ParsingError("No definitions to scan.")
         self.reset()
         command_defs, env_defs = self.defs
         while self.uplegal():
@@ -763,7 +792,7 @@ class Tex_stream(Stream):
         Return [args].
         """
         if not self.legal():
-            raise "No arguments to scan."
+            raise ParsingError("No arguments to scan.")
         numargs = command_or_env_def.numargs
         name = command_or_env_def.name
 
@@ -784,9 +813,9 @@ class Tex_stream(Stream):
         Return command_instance
         """
         if not self.legal():
-            raise "No command to scan."
+            raise ParsingError("No command to scan.")
         if not self.item.type in [esc_symb_ty, esc_str_ty]:
-            raise "Command does not begin with control sequence."
+            raise ParsingError("Command does not begin with control sequence.")
         name = self.item.val
         self.next()
         if 0 < command_def.numargs:
@@ -797,7 +826,7 @@ class Tex_stream(Stream):
         return Command_instance(name, args)
 
     def test_env_boundary(self, item):
-        """Check whether an environment begin or end follows.
+        r"""Check whether an environment begin or end follows.
         Return 1 if \begin, -1 if \end, 0 otherwise.
         """
         d = 0
@@ -813,10 +842,10 @@ class Tex_stream(Stream):
         Return env_name.
         """
         if not self.legal():
-            raise "No environment begin to scan."
+            raise ParsingError("No environment begin to scan.")
         item = self.item
         if not (esc_str_ty == item.type and "begin" == item.val):
-            raise "Environment does not begin with begin."
+            raise ParsingError("Environment does not begin with begin.")
         self.next()
         name_group = self.scan_group()
         name = detokenize(name_group.val)
@@ -827,21 +856,21 @@ class Tex_stream(Stream):
         Return env_name.
         """
         if not self.legal():
-            raise "No environment end to scan."
+            raise ParsingError("No environment end to scan.")
         item = self.item
         if not (esc_str_ty == item.type and "end" == item.val):
-            raise "Environment does not end with end."
+            raise ParsingError("Environment does not end with end.")
         self.next()
         name_group = self.scan_group()
         name = detokenize(name_group.val)
         return name
 
     def scan_env_rest(self, env_def):
-        """Scanning starts after \begin{envname}.
+        r"""Scanning starts after \begin{envname}.
         Returns env_instance.
         """
         if not self.legal():
-            raise "No environment rest to scan."
+            raise ParsingError("No environment rest to scan.")
         count = 1 # We are already within a boundary.
         args = self.scan_args(env_def)
         body = []
@@ -863,14 +892,14 @@ class Tex_stream(Stream):
 
     def restore_defs(self):
         if os.path.isfile(self.defs_db_file):
-            print "Using defs db %s" % (self.defs_db_file)
+            print("Using defs db %s" % (self.defs_db_file))
             db_h = shelve.open(self.defs_db)
             self.defs = db_h["defs"]
             db_h.close()
 
     def save_defs(self):
         db_h = shelve.open(self.defs_db)
-        if db_h.has_key("defs"):
+        if "defs" in db_h:
             del db_h["defs"]
         db_h["defs"] = self.defs
         db_h.close()
@@ -878,11 +907,11 @@ class Tex_stream(Stream):
     def add_defs(self, defs_file):
         defs_file_compl = defs_file + ".sty"
         if not os.path.isfile(defs_file_compl):
-            raise "%s does not exist" % (defs_file_compl)
+            raise FileNotFoundError("%s does not exist" % (defs_file_compl))
 
         defs_db_file = self.defs_db_file
         if newer(defs_db_file, defs_file_compl):
-            print "Using defs db %s for %s" % (defs_db_file, defs_file)
+            print("Using defs db %s for %s" % (defs_db_file, defs_file))
         else:
             defs_fp = open(defs_file_compl, "r")
             defs_str = defs_fp.read()
@@ -905,8 +934,8 @@ class Tex_stream(Stream):
                     out += command_defs[def_name].show() + "\n"
                 for def_name in env_defs.keys():
                     out += env_defs[def_name].show() +"\n"
-                print "Definitions after reading %s:" % (defs_file)
-                print out
+                print("Definitions after reading %s:" % (defs_file))
+                print(out)
 
     # Applying definitions, recursively
     # (maybe not quite in Knuth order, so avoid tricks!)
@@ -924,10 +953,10 @@ class Tex_stream(Stream):
             token = body[pos]
             argnum = token.val
             if not pos_digit_re.match(argnum):
-                raise "# is not followed by number."
+                raise ArgumentError("# is not followed by number.")
             argnum = int(argnum)
             if argnum > len(args):
-                raise "Too large argument number."
+                raise ArgumentError("Too large argument number.")
             arg = args[argnum-1]
             out += arg
             pos += 1
@@ -943,9 +972,10 @@ class Tex_stream(Stream):
         result = self.subst_args(body, args)
         try:
             result = self.apply_all_recur(result)
-        except Empty_text_error, e:
-            raise "apply_all_recur fails on command instance %s: %s, %s" % \
-                  (command_instance.show(), detokenize(e.data), e.message)
+        except Empty_text_error as e:
+            raise RuntimeError("apply_all_recur fails on command instance {}: "
+                               "{}, {}".format(command_instance.show(),
+                                               detokenize(e.data), e.message))
         return result
 
     def apply_env_recur(self, env_instance):
@@ -971,7 +1001,7 @@ class Tex_stream(Stream):
         while ts.uplegal():
             if self.pos > progress:
                 if report:
-                    print self.pos
+                    print(self.pos)
                 progress += progress_step
             if not ts.item.type in [esc_symb_ty, esc_str_ty]:
                 out.append(ts.item)
@@ -980,7 +1010,7 @@ class Tex_stream(Stream):
             if 1 == ts.test_env_boundary(ts.item):
                 old_pos = ts.pos
                 env_name = ts.scan_env_begin()
-                if not env_defs.has_key(env_name):
+                if env_name not in env_defs:
                     out.extend(ts.data[old_pos : ts.pos])
                     continue
                 else:
@@ -988,7 +1018,7 @@ class Tex_stream(Stream):
                     env_instance = ts.scan_env_rest(env_def)
                     result = ts.apply_env_recur(env_instance)
                     out.extend(result)
-            elif not command_defs.has_key(ts.item.val):
+            elif ts.item.val not in command_defs:
                 out.append(ts.item)
                 ts.next()
                 continue
@@ -1007,14 +1037,14 @@ class Tex_stream(Stream):
         """
         file = cut_extension(file, ".tex")
         source_file = "%s.tex" % (file)
-        print "File %s [" % (source_file)
+        print("File %s [" % (source_file))
         source_fp = open(source_file, "r")
         text_str = source_fp.read()
         source_fp.close()
 
         self.smart_tokenize(text_str, handle_inputs=True)
         if not self.data:
-            raise "Empty tokenization result."
+            raise RuntimeError("Empty tokenization result.")
         self.reset()
 
         if self.debug:
@@ -1026,15 +1056,15 @@ class Tex_stream(Stream):
         self.data = self.apply_all_recur(self.data, report=True)
 
         result_fname = "%s-clean.tex" % (file)
-        print "Writing %s [" % (result_fname)
+        print("Writing %s [" % (result_fname))
         result_fp = open(result_fname, "w")
         result_fp.write(self.smart_detokenize())
         result_fp.close()
-        print "] file %s" % (result_fname)
-        print "] file %s" % (source_file)
+        print("] file %s" % (result_fname))
+        print("] file %s" % (source_file))
 
     def process_if_newer(self, file):
-        """
+        r"""
         \input{file} is be added to the token list.
         If the input file is newer it is processed.
         Returns tokenized \input{file}.
@@ -1043,7 +1073,7 @@ class Tex_stream(Stream):
         tex_file = file+".tex"
         clean_tex_file = file+"-clean.tex"
         if newer(clean_tex_file, tex_file):
-            print "Using %s." % (clean_tex_file)
+            print("Using %s." % (clean_tex_file))
         else:
             ts = Tex_stream()
             ts.data = []
@@ -1054,31 +1084,49 @@ class Tex_stream(Stream):
 
 
 # Main
+# TODO: use click.File for maintex
+@click.command()
+@click.option('--debug/--no-debug', default=False)
+@click.option('--defs', default=None, type=click.File('r'))
+@click.argument('maintex', type=str)
+@click.argument('outputdir', type=str, default="expanded-latex")
+def main(maintex, outputdir, debug, defs):
 
-long_optlist = ["debug","defs="]
-options, restargs = getopt_map("x", long_optlist)
+    # flap_output_dir = Path("_tmp_expand_macros/")
+    flap_output_dir = Path(outputdir)
+    flap_merged_filename = "merged.tex"
 
-debug = False
-if options.has_key("--debug"):
-    debug = True
+    # First use flap to flatten the latex into a single file
+    os.makedirs(flap_output_dir, exist_ok=True)
+    flap.ui.Controller(
+        flap.ui.OSFileSystem(),
+        flap.ui.Display(sys.stdout, verbose=False)
+        ).run(maintex, str(flap_output_dir))
 
-root = restargs[0]
-root = cut_extension(root, ".tex")
-if options.has_key("--defs"):
-    defs_root = options["--defs"]
-else:
-    defs_root = "%s" % (root)
-defs_db = defs_root
-defs_db_file = defs_root+".db"
+    # Now run the ported de-macro code
+    root = flap_output_dir/flap_merged_filename
+    root = cut_extension(str(root), ".tex")
+    # if "--defs" in options:
+    #     defs_root = options["--defs"]
+    if defs is not None:
+        defs_root = defs
+    else:
+        defs_root = "%s" % (root)
+    defs_db = defs_root
+    defs_db_file = defs_root+".db"
 
-ts = Tex_stream()
-ts.defs_db = defs_db
-ts.defs_db_file = defs_db_file
-ts.debug = debug
+    ts = Tex_stream()
+    ts.defs_db = defs_db
+    ts.defs_db_file = defs_db_file
+    ts.debug = debug
 
-ts.restore_defs()
-for root in restargs:
+    ts.restore_defs()
     ts.process_file(root)
+    # for root in restargs:
+    #     ts.process_file(root)
 
-print "(Re)creating defs db %s" % (defs_db)
-ts.save_defs()
+    print("(Re)creating defs db %s" % (defs_db))
+    ts.save_defs()
+
+if __name__ == "__main__":
+    main()
