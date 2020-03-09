@@ -2,10 +2,10 @@
 Licensed under the Apache License, Version 2.0
 
 This package combines the functionality of two other Python packages:
-  <ul>
-    <li> [*FLaP*](https://pythonhosted.org/FLaP/), for flattening a hierarchy of LaTeX files.
-    <li> [*de-macro*](https://www.ctan.org/pkg/de-macro), for replacing macros in a document by their definitions.
-  </ul>
+  
+  - [*FLaP*](https://pythonhosted.org/FLaP/), for flattening a hierarchy of LaTeX files.
+  - [*de-macro*](https://www.ctan.org/pkg/de-macro), for replacing macros in a document by their definitions.
+
 It is essentially a Python 3 port of the *de-macro* script; *FLaP* is simply called before launching the de-macroing routines.
 
 Original copyright notice:<br>
