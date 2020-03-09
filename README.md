@@ -46,12 +46,12 @@ Original copyright notice:<br>
     them. Probably best to avoid any kind of special logic.
   - Only put recognized commands recognized in your definitions file,
     specifically:
-    <ul>
-      <li> newcommand
-      <li> renewcommand
-      <li> newenvironment
-      <li> renewenvironment
-    </ul>
+    
+      - newcommand
+      - renewcommand
+      - newenvironment
+      - renewenvironment
+
     In particular, name placeholder macros of the style
     `\def\arnold/{Arnold Schwarzenegger}` (arguably a
     [canonical idiom](https://tex.stackexchange.com/a/290504)) are not supported.
