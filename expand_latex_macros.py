@@ -1,9 +1,13 @@
 r"""
                      EXPAND_LATEX_MACROS
 
+                Copyright © 2020 Alexandre René
+
                         based on the
                           DE-MACRO
-                          package
+                 package by Péter Gács (© 2005)
+
+
 
 This is first and foremost a Python3 port of the de-macro package. It also calls the FLaP package to first flatten the directory.
 The original docstring for the de-macro package follows below.

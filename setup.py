@@ -17,13 +17,13 @@ setup(
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Science/Research',
         'Programming Language :: Python :: 3 :: Only',
-        'License :: OSI Approved :: Apache Software License'
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)'
     ],
     keywords='latex',
 
     py_modules=["expand_latex_macros"],
 
-    python_requires='>=3.6, <4',
+    python_requires='>=3.6',
 
     install_requires=[
         'flap',
