@@ -8,7 +8,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
 
     name="expand-latex-macros",
-    version="2.0.0dev",
+    version="2.0.1dev",
     description="A package for replacing latex macros by their definition.",
     long_description=long_description,
     author='Alexandre René',
@@ -33,5 +33,6 @@ setup(
     entry_points="""
         [console_scripts]
         expand-latex-macros=expand_latex_macros:main
+        convert-to-cmyk=expand_latex_macros:convert_to_cmyk
     """
 )

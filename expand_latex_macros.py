@@ -1092,8 +1092,11 @@ class Tex_stream(Stream):
 @click.command()
 @click.option('--debug/--no-debug', default=False)
 @click.option('--defs', default=None, type=click.File('r'))
-@click.argument('maintex', type=str)
-@click.argument('outputdir', type=str, default="expanded-latex")
+@click.argument('maintex', type=click.Path(exists=False,
+                                           file_okay=True, dir_okay=False))
+@click.argument('outputdir', type=click.Path(exists=False,
+                                             file_okay=False, dir_okay=True),
+                default="flat-latex")
 def main(maintex, outputdir, debug, defs):
 
     # flap_output_dir = Path("_tmp_expand_macros/")
@@ -1131,6 +1134,190 @@ def main(maintex, outputdir, debug, defs):
 
     print("(Re)creating defs db %s" % (defs_db))
     ts.save_defs()
+
+@click.command()
+@click.option('--format', type=click.Choice(['pdf', 'eps'], case_sensitive=False), default='pdf')
+@click.option('--in-place/--not-in-place', default=False,
+              help="Change image files in place. This should be safe to use "
+                   "on the directory produced by 'expand-latex-macros'; "
+                   "otherwise be careful not to clobber your original files.\n"
+                   "By default, files are placed in a subdirectory '_cmyk'.")
+@click.option('--overwrite/--no-overwrite', default=True,
+              help="Use --no-overwrite to prevent overwriting files in the "
+                   "_cmyk subdirectory. Default: --overwrite.")
+@click.option('--exclude', type=str, default=None,
+              help="Files to exclude (such as the compiled pdf document). "
+                   "This is required if 'format' is 'pdf'. To pass multiple "
+                   "filenames, separate them with commas.")
+@click.option('--echo/--no-echo',
+              help="Print the command to console instead of executing it. "
+                   "It's a good idea to run the script with this option first.")
+@click.argument('srcdir',
+                type=click.Path(exists=True, file_okay=False, dir_okay=True),
+                default='flat-latex')
+# The following values should generally be fine as-is
+@click.option('--dAutoRotatePages',         type=str, default='/None', help='Default: /None')
+@click.option('--dEmbedAllFonts',           type=str, default='true', help='Default: true')
+@click.option('--sColorConversionStrategy', type=str, default='CMYK', help='Default: CMYK')
+@click.option('--dAutoFilterColorImages',   type=str, default='false', help='Default: false')
+@click.option('--dAutoFilterGrayImages',    type=str, default='false', help='Default: false')
+@click.option('--dColorImageFilter',        type=str, default='/FlateEncode',
+              help='Default: /FlateEncode (lossless image conversion). Ignored for EPS, because '
+              'with gs v9.27 causes conversion to fail.')
+@click.option('--dGrayImageFilter',         type=str,
+              help='Default: /FlateEncode (lossless image conversion). Ignored for EPS, because '
+              'with gs v9.27 causes conversion to fail.')
+@click.option('--dDownsampleMonoImages',    type=str, default='false', help='Default: false')
+@click.option('--dDownsampleGrayImages',    type=str, default='false', help='Default: false')
+def convert_to_cmyk(format, in_place, overwrite, exclude, echo, srcdir, **kwargs):
+    """
+    Tested with ghostscript v9.27. © Alexandre René 2020.
+
+    This function wraps a ghostscript call which converts all image files in
+    the source directory to a CMYK colour scheme. It's based on the command
+    described here: http://zeroset.mnim.org/2014/07/14/save-a-pdf-to-cmyk-with-inkscape/.
+    Ghostscript is usually installed by default on Linux; for Windows or
+    macOS it will first need to be installed.
+
+    A typical call may look like
+
+    $ convert-to-cmyk --format pdf --exclude flat-latex/main.pdf --in-place flat-latex
+
+    where 'flat-latex' is the directory where 'expand-latex-macros' placed
+    its output. The most relevant options are
+
+      --format
+      --exclude
+      --in-place
+      --echo
+
+    Other options are passed directly to ghostscript, and follow its (or
+    rather Adobe's) rather arcane naming scheme.
+
+    More examples:
+
+    To check the command before execution:
+
+    $ convert-to-cmyk --format eps --echo --in-place flat-latex
+
+    To avoid overwriting the original image files:
+
+    $ convert-to-cmyk --format eps flat-latex
+
+    Where to find more information on the distiller options
+    -------------------------------------------------------
+    - The ghostscript documentation [1] should be the first place to look.
+    - The ghostscript options closely follows those of the Adobe Distiller [2].
+
+    Hacks / Changes compared to the blog post on zeroset
+    ----------------------------------------------------
+
+    - With v9.27 of ghostscript, I found that setting the ImageFilter option
+      with EPS export causes a generic error (possibly unrecognized option).
+      Since turning off AutoFilter[Color|Gray]Images should set the filter to
+      lossless anyway (according to the Adobe Distiller documentation [2]),
+      the function just ignores these options when exporting to EPS.
+
+    - The 'ProcessColorModel' option is remove since it's been deprecated.
+
+    Troubleshooting
+    ---------------
+
+    - Why is the resulting image cropped ?
+    
+    The EPS writer will always limit the output to the size of the page. Make
+    sure the stated dimensions of your original file aren't too large.
+    (One way to view/change dimensions: in Inkscape, File->Document Properties.)
+
+
+    References
+    -----------
+    - [1] https://www.ghostscript.com/doc/9.27/VectorDevices.htm
+    - [2] https://www.adobe.com/content/dam/acom/en/devnet/acrobat/pdfs/PDFCreationSettings_v9.pdf
+
+    """
+    import subprocess
+    # Fixed flags
+    flags = ["-dSAFER",    # Recommend for all batch scripts; prevents opening/running external files
+             "-dBATCH",    # Don't launch the gs console
+             "-dNOPAUSE"   # Don't stop and wait for input at the end.
+             "-q"          # Don't print the copyright notice on every call
+             ]
+    # gs flags are all converted to lowercase; we need to convert them back to
+    # CamelCase
+    gsflagnames = ['dAutoRotatePages',
+                   'dEmbedAllFonts',
+                   'sColorConversionStrategy',
+                   'dProcessColorModel',
+                   'dAutoFilterColorImages',
+                   'dAutoFilterGrayImages',
+                   'dColorImageFilter',
+                   'dGrayImageFilter',
+                   'dDownsampleMonoImages',
+                   'dDownsampleGrayImages']
+    gsflagnameslc = [s.lower() for s in gsflagnames]
+    for k in list(kwargs.keys()):  # list() creates an copy that won't change during iteration
+        # Retrieve the CamelCase flagname
+        kcc = '-' + gsflagnames[gsflagnameslc.index(k)]
+        # Replace entry in kwargs with the CamelCase key
+        assert kcc not in kwargs
+        kwargs[kcc] = kwargs[k]
+        del kwargs[k]
+
+    # Parse the 'exclude' option
+    if format=='pdf' and exclude is None:
+        raise ValueError("You must specify excluded files if your images are "
+                         "in PDF format. If none are to be excluded, you can "
+                         "provide an empty string.")
+    if exclude is None:
+        exclude = []
+    else:
+        exclude = [Path(p) for p in exclude.split(',') if p != ""]
+
+    # Determine the extension of the image files
+    if   format=='pdf':
+        suffix='.pdf'
+        kwargs['-sDEVICE'] = 'pdfwrite'
+    elif format=='eps':
+        suffix='.eps'
+        kwargs['-sDEVICE'] = 'eps2write'
+        kwargs.pop('-dColorImageFilter')
+        kwargs.pop('-dGrayImageFilter')
+    else:
+        raise AssertionError  # Should not be possible to reach here
+
+    flags += [f"{k}={v}" for k,v in kwargs.items()]
+
+    # Determine the output directory
+    srcdir = Path(srcdir)
+    if in_place:
+        outdir = srcdir
+    else:
+        outdir = srcdir/"_cmyk"
+        if not echo and not overwrite and outdir.exists():
+            raise RuntimeError(
+                "You asked not to overwrite files, but the '_cmyk' already "
+                "exists. Either delete the directory, or provide the "
+                f"'--inplace' option to replace the files in {srcdir}.")
+        elif not echo:
+            os.makedirs(outdir, exist_ok=overwrite)
+
+    # Loop over the image files
+    filenames = [f for f in os.listdir(srcdir) if Path(f).suffix == suffix]
+    for filename in filenames:
+        inpath = str(srcdir/filename)
+        outpath = str(outdir/filename)
+        cmdlst = ["gs"] + flags + [f'-sOutputFile={outpath}', inpath]
+        if echo:
+            print(' '.join(cmdlst))
+            if len(filenames) > 1:
+                print("Only the first command was printed. It would be "
+                      f"applied to the following {len(filenames)} files:")
+                print("\n".join(filenames))
+                break
+        else:
+            print(f"Exporting {filename}...")
+            subprocess.run(cmdlst)
 
 if __name__ == "__main__":
     main()
