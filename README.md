@@ -32,6 +32,16 @@ It is essentially a Python 3 port of the *de-macro* script; *FLaP* is simply ca
     Just like when compiling with LaTeX, your `*-private.sty` file must be
     findable from the directory where the command is *executed*.
 
+# Provided commands
+
+This package provides the following command-line functions. Type `[function name] --help` for usage instructions.
+
+  - `expand-latex-macros`: Replace personal macros by their definition.
+  - `convert-to-cmyk`: Convert figures to CMYK color space.
+  - `rename-figures`: Rename figures to the journal specifications.
+
+To tie everything into a single automated procedure, have a look at the provided [example script](./example/prepare_final_latex.sh).
+
 # Limitations
 
   - Commands with default arguments are not supported.
@@ -77,7 +87,6 @@ script, before launching *expand-latex-macros*.
 
 ---
 # Original *de-macro* readme
-
 
 Original copyright notice:<br>
   Copyright 2005 Péter Gács<br>

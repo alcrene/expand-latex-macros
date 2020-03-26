@@ -4,7 +4,9 @@
 - Replace `-clean` suffix with `.suffix`
   => Makes it easy to see what was performed with `Path().suffixes`.
 
-- Add `cp-eps` and `embed-bbl` commands
+- Add `cp-eps` and `embed-bbl` from example folder as commands.
+
+- Add command to produce `prepare_final_latex.sh` as in example folder.
 
 - Add comment-stripping function, supported by *arxiv_latex_cleaner*.
 
