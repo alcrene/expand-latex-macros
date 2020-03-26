@@ -1086,24 +1086,112 @@ class Tex_stream(Stream):
         to_add = "\\input{%s}" % (file)
         return tokenize(to_add)
 
+def _rename_figures(renamestr, maintex, extensions=None, start=1):
+    """This function added by Alexandre René."""
+    maintex = Path(maintex)
+    if extensions is not None:
+        if isinstance(extensions, str):
+            extensions = extensions.split(',')
+        extensions = ['.'+e.strip(' .') for e in extensions]
+    root = maintex.stem
+    os.chdir(maintex.parent)
+    siblings = os.listdir()
+    if '{' in renamestr and '}' in renamestr:
+        # Passing an invalid substitution string prevents figure renaming
+        if str(root).endswith('-clean'):
+            cleanroot = Path(root).with_suffix('.tex')
+        else:
+            cleanroot = Path(str(root) + "-clean.tex")
+        renamedroot = cleanroot.with_suffix(".renamed.tex")
+        if not cleanroot.exists():
+            raise FileNotFoundError(f"Could not find the file {cleanroot}.")
+        regex = re.compile(r"\\includegraphics(\[.*\])?\{(.*)\}")
+        with open(cleanroot, 'r') as f:
+            tex = f.read()
+        tokens = []
+        pos = 0
+        i = start
+        for match in regex.finditer(tex):
+            # The match returns two groups:
+            #   First group is the optional argument, which we can ignore
+            #   Second group is the filename, which we need
+            #   (group '0' is the entire match)
+            origstem = match.group(2)
+            origfiles = [Path(fname) for fname in siblings
+                         if origstem in fname]
+            if len(origfiles) == 0:
+                warn("The figure reference {} was not renamed because it does "
+                     "not point to an existing file.".format(origstem))
+                continue
+            newstem = renamestr.format(i)
+            # If there is a period in the stem we need to include the extension
+            texlink = newstem
+            if '.' in texlink or extensions is not None:
+                if extensions is None:
+                    raise ValueError(
+                    "Your renamed figure files have non-extension periods in "
+                    "their filenames. Because of this their extension needs to "
+                    "be specified in the TeX source, and for this you need to "
+                    "specify a preference order for extensions with the "
+                    "`extensions` option.")
+                fileexts = [p.suffix for p in origfiles]
+                filefound = False
+                for ext in extensions:
+                    if ext in fileexts:
+                        texlink = str(texlink) + ext
+                        filefound = True
+                        break
+                if not filefound:
+                    raise FileNotFoundError(
+                        "No file with appropriate extension was found to "
+                        f"match {newstem}")
+
+            # Update the TeX. start(2) returns the starting index of 2nd group)
+            tokens.extend([tex[pos:match.start(2)], texlink])
+            pos = match.end(2)
+
+            #tex = tex[:match.start(2)] + newstem + tex[match.end(2):]
+            # print()
+            # print(tex[match.start(2)-10:match.start(2)])
+            # print(tex[match.end(2):match.end(2)+10])
+            # Move the image files
+            for ofile in origfiles:
+                # Note: newstem may contain 'suffixes' which need to be kept
+                # (e.g. NECO asks for the format Figure.1.eps, …)
+                nfile = Path(newstem + ofile.suffix)
+                ofile.replace(nfile)
+            i += 1
+        tokens.append(tex[pos:])
+        with open(renamedroot, 'w') as f:
+            f.write(''.join(tokens))
 
 # Main
-# TODO: use click.File for maintex
 @click.command()
 @click.option('--debug/--no-debug', default=False)
 @click.option('--defs', default=None, type=click.File('r'))
+@click.option('--renamefigs', default="figure_{}",
+              help="Rename figures sequentially. Brackets are substituted by "
+                   "the figure number with Python's `format` method, and the "
+                   "appropriate extension is added to the file name. Pass an "
+                   "empty string to prevent renaming figures.")
+@click.option('--figexts', default=None,
+              help="Define an order of preference for figure extensions; "
+                   "pass multiple values by separating them with commas. "
+                   "This will fix the file extension in the TeX source. "
+                   "(Generally not recommended, but sometimes required.)")
 @click.argument('maintex', type=click.Path(exists=False,
                                            file_okay=True, dir_okay=False))
 @click.argument('outputdir', type=click.Path(exists=False,
                                              file_okay=False, dir_okay=True),
                 default="flat-latex")
-def main(maintex, outputdir, debug, defs):
+def main(maintex, outputdir, renamefigs, figexts, debug, defs):
 
     # flap_output_dir = Path("_tmp_expand_macros/")
     flap_output_dir = Path(outputdir)
     flap_merged_filename = "merged.tex"
 
     # First use flap to flatten the latex into a single file
+    print("Merging files with FLaP...")
     os.makedirs(flap_output_dir, exist_ok=True)
     flap.ui.Controller(
         flap.ui.OSFileSystem(),
@@ -1111,6 +1199,7 @@ def main(maintex, outputdir, debug, defs):
         ).run(maintex, str(flap_output_dir))
 
     # Now run the ported de-macro code
+    print("Expanding macros...")
     root = flap_output_dir/flap_merged_filename
     root = cut_extension(str(root), ".tex")
     # if "--defs" in options:
@@ -1134,6 +1223,23 @@ def main(maintex, outputdir, debug, defs):
 
     print("(Re)creating defs db %s" % (defs_db))
     ts.save_defs()
+    del ts  # We are done with de-macro; free the associated memory
+
+    # Replace figure names
+    _rename_figures(renamefigs, root, extensions=figexts)
+
+@click.command()
+@click.option('--renamestr', type=str, default='figure_{}')
+@click.option('--start', type=int, default=1,
+              help="Start numbering figures with this value.")
+@click.option('--figexts', default=None,
+              help="Define an order of preference for figure extensions; "
+                   "pass multiple values by separating them with commas. "
+                   "This will fix the file extension in the TeX source. "
+                   "(Generally not recommended, but sometimes required.)")
+@click.argument('maintex', type=click.Path(exists=True, file_okay=True, dir_okay=False))
+def rename_figures(renamestr, maintex, start, figexts):
+    return _rename_figures(renamestr, maintex, extensions=figexts, start=start)
 
 @click.command()
 @click.option('--format', type=click.Choice(['pdf', 'eps'], case_sensitive=False), default='pdf')
@@ -1206,7 +1312,9 @@ def convert_to_cmyk(format, in_place, overwrite, exclude, echo, srcdir, **kwargs
 
     Where to find more information on the distiller options
     -------------------------------------------------------
+
     - The ghostscript documentation [1] should be the first place to look.
+
     - The ghostscript options closely follows those of the Adobe Distiller [2].
 
     Hacks / Changes compared to the blog post on zeroset
@@ -1224,15 +1332,24 @@ def convert_to_cmyk(format, in_place, overwrite, exclude, echo, srcdir, **kwargs
     ---------------
 
     - Why is the resulting image cropped ?
-    
+
     The EPS writer will always limit the output to the size of the page. Make
     sure the stated dimensions of your original file aren't too large.
     (One way to view/change dimensions: in Inkscape, File->Document Properties.)
 
+    - What do this error mean ?
+
+    `Unrecoverable error: rangecheck in .putdeviceprops`
+
+    As far as I can tell this is a generic ghostscript error; I've encountered
+    it because of misformed argument names or values.
+    (remember that arguments names and values are case-sensitive)
 
     References
     -----------
+
     - [1] https://www.ghostscript.com/doc/9.27/VectorDevices.htm
+
     - [2] https://www.adobe.com/content/dam/acom/en/devnet/acrobat/pdfs/PDFCreationSettings_v9.pdf
 
     """
@@ -1240,7 +1357,7 @@ def convert_to_cmyk(format, in_place, overwrite, exclude, echo, srcdir, **kwargs
     # Fixed flags
     flags = ["-dSAFER",    # Recommend for all batch scripts; prevents opening/running external files
              "-dBATCH",    # Don't launch the gs console
-             "-dNOPAUSE"   # Don't stop and wait for input at the end.
+             "-dNOPAUSE",  # Don't stop and wait for input at the end.
              "-q"          # Don't print the copyright notice on every call
              ]
     # gs flags are all converted to lowercase; we need to convert them back to
@@ -1275,7 +1392,7 @@ def convert_to_cmyk(format, in_place, overwrite, exclude, echo, srcdir, **kwargs
         exclude = [Path(p) for p in exclude.split(',') if p != ""]
 
     # Determine the extension of the image files
-    if   format=='pdf':
+    if format=='pdf':
         suffix='.pdf'
         kwargs['-sDEVICE'] = 'pdfwrite'
     elif format=='eps':
@@ -1289,18 +1406,16 @@ def convert_to_cmyk(format, in_place, overwrite, exclude, echo, srcdir, **kwargs
     flags += [f"{k}={v}" for k,v in kwargs.items()]
 
     # Determine the output directory
+    # ==> ghostscript conversion cannot be done in-place, so for 'in-place'
+    #     we still put files in _cmyk subdir, and move afterwards
     srcdir = Path(srcdir)
-    if in_place:
-        outdir = srcdir
-    else:
-        outdir = srcdir/"_cmyk"
-        if not echo and not overwrite and outdir.exists():
-            raise RuntimeError(
-                "You asked not to overwrite files, but the '_cmyk' already "
-                "exists. Either delete the directory, or provide the "
-                f"'--inplace' option to replace the files in {srcdir}.")
-        elif not echo:
-            os.makedirs(outdir, exist_ok=overwrite)
+    outdir = srcdir/"_cmyk"
+    if not echo and not overwrite and outdir.exists():
+        raise RuntimeError(
+            "You asked not to overwrite files, but the '_cmyk' already "
+            "exists. Either delete the directory or allow for overwriting.")
+    elif not echo:
+        os.makedirs(outdir, exist_ok=overwrite)
 
     # Loop over the image files
     filenames = [f for f in os.listdir(srcdir) if Path(f).suffix == suffix]
@@ -1316,8 +1431,11 @@ def convert_to_cmyk(format, in_place, overwrite, exclude, echo, srcdir, **kwargs
                 print("\n".join(filenames))
                 break
         else:
-            print(f"Exporting {filename}...")
+            print(f"Processing {filename}...")
             subprocess.run(cmdlst)
+            if in_place:
+                # Move processed file on top of original
+                Path(outpath).replace(inpath)
 
 if __name__ == "__main__":
     main()

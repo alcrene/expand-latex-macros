@@ -51,6 +51,13 @@ It is essentially a Python 3 port of the *de-macro* script; *FLaP* is simply ca
   - The definitions file is *removed* from the merged document, so any
     definitions left therein are lost.
 
+# Other considerations
+
+## Removing comments
+
+To remove comments automatically, you can use the [arxiv_latex_cleaner](https://github.com/google-research/arxiv-latex-cleaner/)
+script, before launching *expand-latex-macros*.
+
 ---
 
    Copyright 2020 Alexandre René

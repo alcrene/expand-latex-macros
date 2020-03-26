@@ -34,5 +34,6 @@ setup(
         [console_scripts]
         expand-latex-macros=expand_latex_macros:main
         convert-to-cmyk=expand_latex_macros:convert_to_cmyk
+        rename-figures=expand_latex_macros:rename_figures
     """
 )
